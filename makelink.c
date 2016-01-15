@@ -12,7 +12,7 @@
 
 // transfer definitions to global header
 #define DBNAME	"cvfs_db"
-#define SHARELOC	"./sampleshare"	// use full path please!!!!
+#define SHARELOC	"./srcdir"	// use full path please!!!!
 
 // make the soft links here, as of now no threading
 static int callback(void *notUsed, int argc, char **argv, char **colname) {
@@ -63,10 +63,10 @@ int main() {
 
 	// strcpy(file_list, "\'HUMAART.mp3\'");
     // check volcontent Database
-	// option 1 - baka mas mabilis pero kelangan baguhin DB +1 column
-    // sprintf(query, "SELECT * FROM VolContent WHERE filename NOT IN (%s);", file_list);
-	// option 2 - working as of now
-    sprintf(query, "SELECT filename, mountpt FROM VolContent v, Target t WHERE t.tid = v.tid AND filename NOT IN (%s);", file_list);
+	// option 1 - baka mas mabilis pero kelangan baguhin DB +1 column - working as of now
+    sprintf(query, "SELECT filename, location FROM VolContent WHERE filename NOT IN (%s);", file_list);
+	// option 2
+    // sprintf(query, "SELECT filename, mountpt FROM VolContent v, Target t WHERE t.tid = v.tid AND filename NOT IN (%s);", file_list);
 
 	rc = sqlite3_exec(db, query, callback, 0, &errmsg);
 	if (rc != SQLITE_OK) {
