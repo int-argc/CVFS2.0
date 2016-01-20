@@ -22,16 +22,36 @@
 #include <sqlite3.h>
 
 #define TARGET_FILE "target_list.txt"
+#define GBSTR  "GiB"
+#define MBSTR  "MB"    // assumption
+#define TBSTR  "TB"
+
+double toBytes(string sUnit) {
+    char *ptr;
+
+    ptr = strtok(sUnit, " ");
+    double val = atof(ptr);
+    ptr = strtok(NULL, " ");
+    if (strcmp(ptr, GBSTR) == 0) {
+        val *= 1000000000;
+    } else if (strcmp(ptr, MBSTR) == 0) {
+        val *= 1000000;
+    } else if (strcmp(ptr, TBSTR) == 0) {
+        val *= 1000000000000;
+    }
+    // printf("val = %f\n", val);
+    return val;
+}
 
 int main() {
-   
+
     // get network information of initiator
     string ip, netmask, command, alltargetsStr, currtarget, iqn, sendtargets,sql;
-    string disklist, assocvol, mountpt, avspace, command1, sql1;    
+    string disklist, assocvol, mountpt, avspace, command1, sql1;
 
     //sqlite3 information
     sqlite3 *db;
-    int rc = 0;   
+    int rc = 0;
 
     //socket information
     int portno = 3260;
@@ -56,19 +76,18 @@ int main() {
 
     // do nmap for active hosts with port 3260 open
     printf("Scanning network...\n");
-    sprintf(command, "nmap %s%s%s -n -sP | grep \"report\" | awk '{print $5}'",
-   ip, "/", netmask, ip);
+    sprintf(command, "nmap %s%s%s -n -sP | grep \"report\" | awk '{print $5}'", ip, "/", netmask);
     runCommand(command, alltargetsStr);
-    
+
   // discover iscsi targets on hosts scanned successfully
     char *ptr;
     ptr = strtok(alltargetsStr, "\n");
 
     while(ptr != NULL) {
-        
+
 	memset(&serv_addr,0,sizeof(serv_addr));
         sockfd = socket(AF_INET,SOCK_STREAM,0);
-        
+
         serv_addr.sin_family = AF_INET;
         serv_addr.sin_addr.s_addr = inet_addr(ptr);
 	serv_addr.sin_port = htons(portno);
@@ -76,12 +95,12 @@ int main() {
 	    printf("%s is not a target.\n", ptr);
 	} else {
 	    printf("%s is a target.\n", ptr);
-	    sprintf(sendtargets,"iscsiadm -m discovery -t sendtargets -p %s | awk '{print $2}'",ptr);	    
+	    sprintf(sendtargets,"iscsiadm -m discovery -t sendtargets -p %s | awk '{print $2}'",ptr);
 	    runCommand(sendtargets,iqn);
             printf("%s\n", iqn);
-        
+
             sprintf(sql,"insert into Target(ipadd,iqn) values ('%s','%s');",ptr,iqn);
-	   
+
 	    rc = sqlite3_exec(db,sql,0,0,0);
 	    if (rc != SQLITE_OK){
 	        printf("Did not insert successfully!");
@@ -90,12 +109,12 @@ int main() {
 	    strcpy(sendtargets,"");
             strcpy(sql,"");
         }
-       
+
 
         ptr = strtok(NULL, "\n");
 	close(sockfd);
     }
-    
+
     // dapat ata meron tayo -m node -o delete para di matagal login (since na reretain dating mga target)
     // -m node --login
     printf("\n\nLogging in to targets...");
@@ -106,7 +125,7 @@ int main() {
     system(command);
     system("cat /proc/partitions");
 
-    //system("cat AvailableDisks.txt | grep sd[b-z] | awk '{print $4}'");   
+    //system("cat AvailableDisks.txt | grep sd[b-z] | awk '{print $4}'");
 
     // volume manager: initialize and create volumes
     makeVolume(0);
@@ -114,7 +133,7 @@ int main() {
     runCommand(disklist,"cat AvailableDisks.txt | grep sd[b-z] | awk '{print $4}'");
 
     char *ptr1;
-    int counter = 1;
+    int counter = 1;    // to aidz: di ako sure dito ah.. pano kung nag delete then init_conf sure ba na 1 lagi tapos sunod sunod?
     ptr1 = strtok(disklist,"\n");
 
     while(ptr1 != NULL){
@@ -126,17 +145,19 @@ int main() {
        strcat(mountpt,"/mnt/lv");
        strcat(mountpt,disklist);
 
-       sprintf(command1,"lvdisplay %s | grep 'LV Size' | awk '{print $3,$4}'",assocvol); 
+       sprintf(command1,"lvdisplay %s | grep 'LV Size' | awk '{print $3,$4}'",assocvol);
        runCommand(avspace,command1);
 
-       sprintf(sql1,"insert into Target(assocvol,mountpt,avspace) values ('%s','%s','%s') where tid = %d",assocvol,mountpt,avspace,counter);
-   
+       // edit here not sure if working (assume: avspace = "12.3 GiB")
+       double space_bytes = toBytes(avspace);
+       sprintf(sql1,"insert into Target(assocvol,mountpt,avspace) values ('%s','%s',%f) where tid = %d",assocvol,mountpt,space_bytes,counter);
+
        rc = sqlite3_exec(db,sql1,0,0,0);
 
        if (rc != SQLITE_OK){
            printf("Did not insert successfully!");
            exit(0);
-       }   
+       }
 
        strcpy(assocvol,"");
        strcpy(mountpt,"");
