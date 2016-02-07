@@ -23,7 +23,7 @@ int callback(void *notUsed, int argc, char **argv, char **colname){
 	ptr1 = strtok(ls_out, " ");
 
 	while (ptr1 != NULL){
-		sprintf(comm, "cp /mnt/CVFSTemp/%s %s", ptr1, argv[1]);
+		sprintf(comm, "mv /mnt/CVFSTemp/%s %s", ptr1, argv[1]);
 		printf("File %s redirected to %s", ptr1, argv[1]);
 		ptr1 = strtok(NULL, " ");
 	}
