@@ -14,17 +14,45 @@
 
 string ls_out = "";
 
+//striping files method
+void stripeFile(FILE file, char filename){
+
+    int fcnt = 1;
+    string fpartn = "";
+    char buffer[536870912]; //buffer of 512MB
+    while(fread(buffer, 1, 536870912, file) != NULL){ //read 512MB at a time
+          sprintf(fpartn,"%s.part%d",filename,fcnt) //rename the name as e.g. thesis.part1, thesis.part2, thesis.part3
+          fcnt++;
+    }
+
+}
+
 int callback(void *notUsed, int argc, char **argv, char **colname){
 
 	int i;
-	string comm = "";
-
+	string comm = "", ls_file_size = "", ls_file_size_out = "", fileloc = "";
+    FILE *fptr;
+    unsigned int buffer;
+  
 	char *ptr1;
 	ptr1 = strtok(ls_out, " ");
 
 	while (ptr1 != NULL){
-		sprintf(comm, "mv /mnt/CVFSTemp/%s %s", ptr1, argv[1]);
-		printf("File %s redirected to %s", ptr1, argv[1]);
+        //get file size of file
+        sprintf(ls_file_size, "ls -l /mnt/CVFSTemp/ | grep %s | awk '{print $5}'", ptr1);
+		runCommand(ls_file_size,ls_file_size_out);
+		
+		//if current file size > 512MB go to stripeFile()
+		if (ls_file_size_out > 536870912){
+               strcpy(fileloc,"/mnt/CVFSTemp/");
+               strcat(fileloc,ptr1);//store file location to  fileloc
+               fptr = fopen(fileloc,"rb"); //open file
+               stripeFile(fptr,ptr1); //pass to file pointer and filename to stripe method
+        } else {		
+               sprintf(comm, "mv /mnt/CVFSTemp/%s %s", ptr1, argv[1]);
+		       printf("File %s redirected to %s", ptr1, argv[1]);
+        }
+
 		ptr1 = strtok(NULL, " ");
 	}
 
