@@ -17,13 +17,19 @@ string ls_out = "";
 //striping files method
 void stripeFile(FILE file, char filename){
 
+    FILE *wfile;
     int fcnt = 1;
-    string fpartn = "";
+    string fpartn = "", floc = "";
     char buffer[536870912]; //buffer of 512MB
     while(fread(buffer, 1, 536870912, file) != NULL){ //read 512MB at a time
-          sprintf(fpartn,"%s.part%d",filename,fcnt) //rename the name as e.g. thesis.part1, thesis.part2, thesis.part3
-          fcnt++;
+          sprintf(fpartn,"%s.part%d",filename,fcnt); //rename the name as e.g. thesis.part1, thesis.part2, thesis.part3
+          sprintf(floc,"/mnt/CVFSTemp/%s",fpartn); //filelocation of parts
+          wfile = fopen(floc,"wb"); //create a file e.g. thesis.part1 at /mnt/CVFSTemp 
+          fwrite(buffer, 1, sizeof(buffer), wfile); //write read 512MB on file
+          fcnt++; //increment part count
+          fclose(wfile);
     }
+    fclose(file);
 
 }
 
