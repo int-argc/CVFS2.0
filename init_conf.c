@@ -1,9 +1,14 @@
 /*
     CVFS Inital Configuration
-    @author: Aidz and Jeff           :">
+    @author: Aidz <3 Jeff           :">
     requires:
         open-iscsi
         nmap
+        sqlite3
+        libsqlite3-dev
+    uses:
+        cmd_exec.c
+        volman.c
 */
 
 #include <stdio.h>
@@ -69,8 +74,8 @@ int main() {
     runCommand("ip addr show eth0 | grep \'inet \' | awk \'{print $2}\' | cut -f1 -d\'/\'", ip);
     runCommand("ip addr show eth0 | grep \'inet \' | awk \'{print $2}\' | cut -f2 -d\'/\'", netmask);
     printf("*****  Network information  *****\n");
-    ip[strlen(ip) - 1] = '\0';
-    netmask[strlen(netmask) - 1] = '\0';
+    ip[strlen(ip)] = '\0';
+    netmask[strlen(netmask)] = '\0';
     printf("IP address: %s/%s\n\n", ip, netmask);
 
 
