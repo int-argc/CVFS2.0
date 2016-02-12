@@ -100,18 +100,19 @@ int main() {
     printf("\n\nLogging in to targets...");
     system("iscsiadm -m node --login");
     printf("\n\nAvailable partitions written to file \"%s\"\n", AV_DISKS);
+    sleep(5);
     sprintf(command, "cat /proc/partitions > %s", AV_DISKS);
     system(command);
+    system("cat /proc/partitions");
 
-    runCommand(disklist,"cat AvailableDisks.txt | grep sd[b-z] | awk '{print $4}'");
+    makeVolume(0);
 
-/*
+    runCommand("cat AvailableDisks.txt | grep sd[b-z] | awk '{print $4}'",disklist);
+
     char *ptr1;
     int counter = 1;    // to aidz: di ako sure dito ah.. pano kung nag delete then init_conf sure ba na 1 lagi tapos sunod sunod?
     ptr1 = strtok(disklist,"\n");
 
-    printf("\nDisk: %s\n",ptr1);
-/*
     while(ptr1 != NULL){
        strcat(assocvol,"/dev/vg");
        strcat(assocvol,disklist);
@@ -122,11 +123,13 @@ int main() {
        strcat(mountpt,disklist);
 
        sprintf(command1,"lvdisplay %s | grep 'LV Size' | awk '{print $3,$4}'",assocvol);
-       runCommand(avspace,command1);
+
+       runCommand(command1,avspace);
 
        // edit here not sure if working (assume: avspace = "12.3 GiB")
        double space_bytes = toBytes(avspace);
-       sprintf(sql1,"insert into Target(assocvol,mountpt,avspace) values ('%s','%s',%f) where tid = %d",assocvol,mountpt,space_bytes,counter);
+
+       sprintf(sql1,"update Target set assocvol = '%s', mountpt = '%s', avspace = %lf where tid = %d", assocvol, mountpt, space_bytes, counter);
 
        rc = sqlite3_exec(db,sql1,0,0,0);
 
@@ -141,7 +144,7 @@ int main() {
        counter++;
        ptr1 = strtok(NULL,"\n");
     }
-*/
+
     printf("\n\nInitialization finished\n");
 
     return 0;

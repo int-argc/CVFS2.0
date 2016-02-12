@@ -12,7 +12,7 @@
 
 // transfer definitions to global header
 #define DBNAME	"cvfs_db"
-#define SHARELOC	"./srcdir"	// use full path please!!!!
+#define SHARELOC	"/mnt/Share"	// use full path please!!!!
 
 // make the soft links here, as of now no threading
 static int callback(void *notUsed, int argc, char **argv, char **colname) {

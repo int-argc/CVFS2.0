@@ -6,95 +6,97 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <sqlite3.h>
 #include "global_defs.h"
 #include "cmd_exec.h"
-
 #define DBNAME "cvfs_db"
 
-string ls_out = "";
-
-//striping files method
-void stripeFile(FILE file, char filename){
-
-    FILE *wfile;
-    int fcnt = 1;
-    string fpartn = "", floc = "";
-    char buffer[536870912]; //buffer of 512MB
-    while(fread(buffer, 1, 536870912, file) != NULL){ //read 512MB at a time
-          sprintf(fpartn,"%s.part%d",filename,fcnt); //rename the name as e.g. thesis.part1, thesis.part2, thesis.part3
-          /**this is where the sorting should come in, specifying which folder to write to **/
-          /**instead of /mnt/CVFSTemp, change it to mountpt folder**/
-          sprintf(floc,"/mnt/CVFSTemp/%s",fpartn); //filelocation of parts
-          /**********************************************************************************/
-          wfile = fopen(floc,"wb"); //create a file e.g. thesis.part1 at /mnt/CVFSTemp 
-          fwrite(buffer, 1, sizeof(buffer), wfile); //write read 512MB on file
-          fcnt++; //increment part count
-          fclose(wfile);
-    }
-    fclose(file);
-
-}
+//Global Variables
+string ls_file_out = "";
+sqlite3 *db;
 
 int callback(void *notUsed, int argc, char **argv, char **colname){
 
 	int i;
-	string comm = "", ls_file_size = "", ls_file_size_out = "", fileloc = "";
-    FILE *fptr;
-    unsigned int buffer;
-  
+	string comm = "", ls_file_size = "", ls_file_size_out = "", mv = "", sql = "", fileloc = "";  
+	string filename = "";
 	char *ptr1;
-	ptr1 = strtok(ls_out, " ");
+	ptr1 = strtok(ls_file_out, "\n");
+	int rc;
+	
+	FILE *fp;
 
 	while (ptr1 != NULL){
-        //get file size of file
-        sprintf(ls_file_size, "ls -l /mnt/CVFSTemp/ | grep %s | awk '{print $5}'", ptr1);
-		runCommand(ls_file_size,ls_file_size_out);
+        	//get file size of file
+       	 	sprintf(ls_file_size, "ls -l /mnt/CVFSTemp/ | grep '%s' | awk '{print $5}'", ptr1);
+       	 	runCommand(ls_file_size,ls_file_size_out);
+
+		if (atof(ls_file_size_out) > 536870912.00){
+	//		sprintf(fileloc,"/mnt/CVFSTemp/%s",ptr1);
+	//		if ((fp = fopen(fileloc,"rb")) == NULL){
+	//			printf ("\nError opening file %s\n",ptr1);				
+	//		}
+	//		ptr1 = strtok(NULL,"\n");
+			printf("\nFile: %s | File Size: %s\n", ptr1, ls_file_size_out);
+		} else { 
 		
-		//if current file size > 512MB go to stripeFile()
-		if (ls_file_size_out > 536870912){
-               strcpy(fileloc,"/mnt/CVFSTemp/");
-               strcat(fileloc,ptr1);//store file location to  fileloc
-               fptr = fopen(fileloc,"rb"); //open file
-               stripeFile(fptr,ptr1); //pass to file pointer and filename to stripe method
-        } else {		
-               sprintf(comm, "mv /mnt/CVFSTemp/%s %s", ptr1, argv[1]);
-		       printf("File %s redirected to %s", ptr1, argv[1]);
-        }
+	        	printf("\nFile: %s | File Size: %s\n", ptr1, ls_file_size_out);
+			printf ("Folder: %s\n", argv[1]);
+			sprintf(mv, "mv '/mnt/CVFSTemp/%s' %s", ptr1, argv[1]);  
+      			printf("File %s will be redirected to %s\n",ptr1, argv[1]);
+			system(mv);        	
+			sprintf(sql,"INSERT INTO VolContent (filename,location) values ('%s','%s');", ptr1, argv[1]);				
+			
+			if (rc != SQLITE_OK){
+				fprintf(stderr,"Cant execute command!\n",sqlite3_errmsg(db));
+				sqlite3_close(db);
+				exit(1);
+			}			
+			
+			//Update Target Size Code here//
 
-		ptr1 = strtok(NULL, " ");
+			strcpy(ls_file_size_out,"");
+			ptr1 = strtok(NULL,"\n");
+		}
 	}
-
 	printf("\n");
+	sqlite3_close(db);
 	return 0;
 }
 
 int main(){
-	sqlite3 *db;
 	char *errmsg = 0;
 	int rc;
 	string ls = "", cp = "", sql = "";
-
-	//get current contents of Temp directory
-	strcpy(ls,"ls /mnt/CVFSTemp");
-	//store contents of temp directory to ls_out	
-	runCommand(ls,ls_out);
-
-	//open database
+	//open database	
+	
 	rc = sqlite3_open(DBNAME,&db);
-	if (rc){
+	if (rc != SQLITE_OK){
 		fprintf(stderr, "Cant open database %s\n", sqlite3_errmsg(db));
 		sqlite3_close(db);
 		exit(1);
 	}
-
-	strcpy(sql,  "SELECT MAX(avspace), mountpt FROM Target;");
 	
-	rc = sqlite3_exec(db,sql, callback, 0, &errmsg);
+	
+	while(1){
+		strcpy(ls, "ls /mnt/CVFSTemp");	
+		runCommand(ls,ls_file_out);
+			
+//		printf("\nTemp Contents: %s\n",ls_file_out);
 
-	if (rc != SQLITE_OK){
-		fprintf(stderr, "SQL Error: %s\n", errmsg);
-		sqlite3_free(errmsg);
+		if (strcmp(ls_file_out,"")){
+			strcpy(sql, "SELECT MAX(avspace), mountpt FROM Target;");
+	
+			rc = sqlite3_exec(db,sql, callback, 0, &errmsg);
+
+			if (rc != SQLITE_OK){
+				fprintf(stderr, "SQL Error: %s\n", errmsg);
+				sqlite3_free(errmsg);
+			}
+
+		}
+		strcpy(ls_file_out,"");
 	}
 	sqlite3_close(db);
 	return 0;

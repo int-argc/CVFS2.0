@@ -1,0 +1,7 @@
+major minor  #blocks  name
+
+   8        0   41943040 sda
+   8        1      96256 sda1
+   8        2   41844736 sda2
+  11        0    1048575 sr0
+   8       16  157274112 sdb
