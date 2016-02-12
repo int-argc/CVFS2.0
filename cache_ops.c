@@ -12,7 +12,7 @@
 #include "cmd_exec.h"
 
 #define DBNAME	"cvfs_db"
-#define CACHELOC "./srcdir"  // use real cache folder
+#define CACHELOC "./srcdir"  // use real cache FULL PATH
 #define MAX_CACHE_SIZE  3
 
 
@@ -47,10 +47,14 @@ void incrementFrequency(string filename) {
 
 }
 
+/*
+    used by storeCont
+*/
 int inCache(string *list, string file) {
     int i;
     for(i = 0; i < MAX_CACHE_SIZE; i++) {
         if (strcmp(list[i], file) == 0) {
+            strcpy(list[i], "");    // mark as taken
             return 1;
         }
     }
@@ -73,9 +77,12 @@ static int storeCont(void *cont_p, int argc, char **argv, char **colname) {
 		exit(1);
 	} else {
         if(inCache(contents, argv[0])) {
-            printf("in cache\n");
+            printf("%s is already in cache\n", argv[0]);
         } else {
-            printf("not in cache\n");
+            printf("%s is not in cache, transferring...\n", argv[0]);
+            sprintf(comm, "cp %s/%s %s", argv[1], argv[0], CACHELOC);
+            printf("comm = %s\n", comm);
+            // system(comm);
         }
 	}
 
@@ -93,9 +100,6 @@ void refreshCache() {
 
     sprintf(comm, "ls %s | sed -e ':a;N;$!ba;s/\\n/,/g'", CACHELOC);
     runCommand(comm, comm_out);
-    // sprintf(file_list, "\"%s", comm_out);
-	// int end = strlen(file_list) - 1;
-	// file_list[end] = '\"';
     strcpy(file_list, comm_out);
 
 
@@ -130,12 +134,22 @@ void refreshCache() {
 	// close db
 	sqlite3_close(db);
 
+    // remove less frequent files
+    for (i = 0; i < MAX_CACHE_SIZE; i++) {
+        if (strcmp(contents[i], "") != 0) {
+            strcpy(comm, "");
+            sprintf(comm, "rm %s/%s", CACHELOC, contents[i]);   // only works for files
+            printf("comm = %s\n", comm);
+            // system(comm);
+        }
+    }
+
 }
 
 // temporary driver
 int main() {
     // test increment: success!
-    refreshCache();
+    // test refreshCache: success!
 
 }
 
