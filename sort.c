@@ -10,11 +10,11 @@
 #include <sqlite3.h>
 #include "global_defs.h"
 #include "cmd_exec.h"
+#include "makelink.h"
 #define DBNAME "cvfs_db"
 
 //Global Variables
 string ls_file_out = "";
-sqlite3 *db;
 
 int callback(void *notUsed, int argc, char **argv, char **colname){
 
@@ -47,13 +47,14 @@ int callback(void *notUsed, int argc, char **argv, char **colname){
       			printf("File %s will be redirected to %s\n",ptr1, argv[1]);
 			system(mv);        	
 			sprintf(sql,"INSERT INTO VolContent (filename,location) values ('%s','%s');", ptr1, argv[1]);				
-			
+
+			rc = sqlite3_exec(db,sql,0,0,0);			
 			if (rc != SQLITE_OK){
 				fprintf(stderr,"Cant execute command!\n",sqlite3_errmsg(db));
 				sqlite3_close(db);
 				exit(1);
 			}			
-			
+			makelink();	
 			//Update Target Size Code here//
 
 			strcpy(ls_file_size_out,"");
