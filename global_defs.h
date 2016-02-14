@@ -1,5 +1,5 @@
 // global definitions
-
+#include <sqlite3.h>
 
 typedef char string[1024];
 
