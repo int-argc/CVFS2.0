@@ -2,15 +2,19 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sqlite3.h>
+#include <sys/inotify.h>
 #include "global_defs.h"
 #include "cmd_exec.h"
 
 #define DBNAME "cvfs_db"
+#define EVENT_SIZE  ( sizeof (struct inotify_event) )
+#define EVENT_BUF_LEN     ( 1024 * ( EVENT_SIZE + 16 ) )
+#define WATCH_DIR   "/mnt/CVFSTemp/"
 
 string ls_file_out = "";
 
 int callback(void *notUsed, int argc, char **argv, char **colname){
- 
+
    string ls_size = "", ls_size_out = "", mv = "";
    char *ptr;
 
@@ -34,6 +38,56 @@ int callback(void *notUsed, int argc, char **argv, char **colname){
    return 0;
 }
 
+void doneCopy(struct inotify_event *e) {
+    if (e->len <= 0) {
+        printf("WTF? file no name?\n");
+    }
+
+    printf("wd = %d\n", e->wd);
+    if (e->mask & IN_CLOSE_NOWRITE) {
+        printf("IN_CLOSE_NOWRITE ");
+        printf("%s is done copying.\n", e->name);
+    }
+    else if (e->mask & IN_CLOSE_WRITE) {
+        printf("IN_CLOSE_WRITE ");
+        printf("%s is done copying.\n", e->name);
+    }
+    else
+        printf("wtf?\n");
+}
+
+// can put main
+void watch_copy() {
+    char buffer[EVENT_BUF_LEN];
+    int wd, len, i;
+    char *p;
+
+    int fd = inotify_init();
+    if (fd < 0) {
+        perror("inotify_init failed");
+    }
+    wd = inotify_add_watch(fd, WATCH_DIR, IN_CLOSE_NOWRITE);   // may kulang for sure | IN_CLOSE_WRITE?
+    if (wd < 0) {
+        perror("inotify_add_watch failed");
+    }
+
+    while (1) {
+        len = read(fd, buffer, EVENT_BUF_LEN);
+        struct inotify_event *event;
+        i = 0;
+        if (len <= 0)
+            perror("inotify read failed");
+
+        p = buffer;
+        while(p < buffer + len) {
+            event = (struct inotify_event *) p;
+            doneCopy(event);
+
+            p += EVENT_SIZE + event->len;
+        }
+    }
+}
+
 int main()
 {
    char *errmsg = 0;
@@ -51,8 +105,8 @@ int main()
 
    while (1){
      runCommand(ls, ls_file_out);
-     
-     //there are still files in CVFSTemp 
+
+     //there are still files in CVFSTemp
      if (strcmp(ls_file_out,"")){
        strcpy(sql,"SELECT MAX(AVSPACE), MOUNTPT FROM TARGET;");
 
@@ -68,4 +122,3 @@ int main()
 
    return 0;
 }
-
