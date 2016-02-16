@@ -23,7 +23,7 @@
 void incrementFrequency(string filename) {
     sqlite3 *db;
     char *errmsg = 0;
-	int rc;
+    int rc;
     string query = "";
 
     printf("incrementFrequency(): Opening database %s\n", DBNAME);
@@ -64,7 +64,7 @@ int inCache(string *list, string file) {
 
 static int storeCont(void *cont_p, int argc, char **argv, char **colname) {
     int i;
-	string comm = "";
+    string comm = "";
     string *contents = cont_p;   // can result in segmentation fault, do not change
     // printf("in store cont\n");
 
@@ -94,7 +94,7 @@ void refreshCache() {
     // get files currently in cache
     sqlite3 *db;
     char *errmsg = 0;
-	int rc;
+    int rc;
     string cachefiles = "", comm = "", comm_out = "", file_list = "", query = "";
     string contents[MAX_CACHE_SIZE];
 
