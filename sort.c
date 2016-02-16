@@ -13,6 +13,27 @@
 
 string ls_file_out = "";
 
+void stripeFile(char * filename){
+    FILE *fp;
+    char buffer[268435456];
+    int counter = 1;
+    string fileloc = "";
+    sprintf(fileloc,"/mnt/CVFSTemp/%s",filename);
+    fp = fopen(fileloc,"rb");
+    if (fp != NULL){
+    	while (fread(buffer,sizeof(buffer),1,fp) != NULL){
+    		string part = "";
+    		sprintf(part,"/mnt/CVFSTemp/%s.part%d",filename,counter);
+    		File *fpart = fopen(part,"wb");
+    		fwrite(buffer,sizeof(buffer),fpart);
+    		counter++;
+    	}
+    }
+   
+    
+	
+}
+
 int callback(void *notUsed, int argc, char **argv, char **colname){
 
    string ls_size = "", ls_size_out = "", mv = "";
