@@ -1,124 +1,111 @@
-#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 #include <sqlite3.h>
 #include <sys/inotify.h>
 #include "global_defs.h"
-#include "cmd_exec.h"
+#include "stripe.h"
+#include "sort.h"
 
 #define DBNAME "cvfs_db"
-#define EVENT_SIZE  ( sizeof (struct inotify_event) )
-#define EVENT_BUF_LEN     ( 1024 * ( EVENT_SIZE + 16 ) )
-#define WATCH_DIR   "/mnt/CVFSTemp/"
+#define WATCH_DIR "/mnt/CVFSTemp/"
+#define BUFF_SIZE ((sizeof(struct inotify_event)+16)*1024)
 
-string ls_file_out = "";
-
-int callback(void *notUsed, int argc, char **argv, char **colname){
-
-   string ls_size = "", ls_size_out = "", mv = "";
-   char *ptr;
-
-   ptr = strtok(ls_file_out,"\n");
-   while (ptr != NULL){
-     sprintf(ls_size,"ls -l /mnt/CVFSTemp/ | grep '%s' | awk '{print $5}'", ptr);
-     runCommand(ls_size, ls_size_out);
-
-     if (atof(ls_size_out) > 546870912.00){
-        //do something here
-     } else {
-        printf("\nFile: %s | File Size: %s bytes\n", ptr, ls_size_out);
-	printf("File redirected to %s\n", argv[1]);
-	sprintf(mv,"mv '/mnt/CVFSTemp/%s' '%s/%s'",ptr,argv[1],ptr);
-        system(mv);
-     }
-     strcpy(ls_size_out,"");
-     ptr = strtok(NULL,"\n");
-   }
-
-   return 0;
-}
-
-void doneCopy(struct inotify_event *e) {
-    if (e->len <= 0) {
-        printf("WTF? file no name?\n");
-    }
-
-    printf("wd = %d\n", e->wd);
-    if (e->mask & IN_CLOSE_NOWRITE) {
-        printf("IN_CLOSE_NOWRITE ");
-        printf("%s is done copying.\n", e->name);
-    }
-    else if (e->mask & IN_CLOSE_WRITE) {
-        printf("IN_CLOSE_WRITE ");
-        printf("%s is done copying.\n", e->name);
-    }
-    else
-        printf("wtf?\n");
-}
-
-// can put main
-void watch_copy() {
-    char buffer[EVENT_BUF_LEN];
-    int wd, len, i;
-    char *p;
-
-    int fd = inotify_init();
-    if (fd < 0) {
-        perror("inotify_init failed");
-    }
-    wd = inotify_add_watch(fd, WATCH_DIR, IN_CLOSE_NOWRITE);   // may kulang for sure | IN_CLOSE_WRITE?
-    if (wd < 0) {
-        perror("inotify_add_watch failed");
-    }
-
-    while (1) {
-        len = read(fd, buffer, EVENT_BUF_LEN);
-        struct inotify_event *event;
-        i = 0;
-        if (len <= 0)
-            perror("inotify read failed");
-
-        p = buffer;
-        while(p < buffer + len) {
-            event = (struct inotify_event *) p;
-            doneCopy(event);
-
-            p += EVENT_SIZE + event->len;
-        }
-    }
-}
-
-int main()
-{
-   char *errmsg = 0;
+void updateVolContent(string filename, const char* fileloc){
    int rc;
-   string sql = "", ls = "";
-
-   rc = sqlite3_open(DBNAME,&db);
+   string sql = "";
+   
+   sprintf(sql, "insert into VolContent values ('%s','%s');",filename,fileloc);
+   rc = sqlite3_exec(db,sql,0,0,0);
    if (rc != SQLITE_OK){
-     fprintf(stderr, "Can't open database %s\n", sqlite3_errmsg(db));
+     printf("Failed to update VolContent database!\n");
      sqlite3_close(db);
      exit(1);
    }
+}
 
-   strcpy(ls, "ls /mnt/CVFSTemp");
+void sort(string filename){
+   int rc;
+   sqlite3_stmt *res;
+   string sql = "", mv = "";
+   strcpy(sql,"select max(avspace), mountpt from Target;");
+   
+   rc = sqlite3_prepare_v2(db,sql,-1,&res,0);
+   if (rc != SQLITE_OK){
+     printf("Error: PREPARE V2.\n");
+     sqlite3_close(db); exit(1);
+   }
+   rc = sqlite3_step(res);
+   if (rc == SQLITE_ROW){
+     printf("File %s is redirected to %s.\n",filename, sqlite3_column_text(res,1));
+     sprintf(mv,"mv '/mnt/CVFSTemp/%s' '%s/%s'", filename, sqlite3_column_text(res,1),filename);
+     system(mv);
+     updateVolContent(filename,sqlite3_column_text(res,1));
+   }
+}
 
-   while (1){
-     runCommand(ls, ls_file_out);
+void get_event (int fd)
+{
+   ssize_t len, i = 0;
+   string action = "";
+   char buff[BUFF_SIZE] = {0};
 
-     //there are still files in CVFSTemp
-     if (strcmp(ls_file_out,"")){
-       strcpy(sql,"SELECT MAX(AVSPACE), MOUNTPT FROM TARGET;");
-
-       rc = sqlite3_exec(db, sql, callback, 0, &errmsg);
-       if (rc != SQLITE_OK){
-          fprintf(stderr, "SQL Error: %s\n", errmsg);
-          sqlite3_free(errmsg);
-          sqlite3_close(db);
-       }
-     }
-     strcpy(ls_file_out,"");
+   len = read (fd, buff, BUFF_SIZE);
+   
+   while (i < len) {
+      struct inotify_event *pevent = (struct inotify_event *)&buff[i];
+      if (pevent->mask & IN_MOVED_TO){ 
+          sprintf(action,"File %s is transferring.",pevent->name);
+	  printf("%s\n",action);
+      }
+      if (pevent->mask & IN_CLOSE_WRITE){
+          string ls_size = "", ls_size_out = "";
+          sprintf(ls_size,"ls -l /mnt/CVFSTemp | grep '%s' | awk '{print $5}'", pevent->name); 
+          runCommand(ls_size,ls_size_out);
+          //system(ls_size);
+          //printf("File Size : %s",ls_size_out);
+          if (atof(ls_size_out) > 536870912.00){
+	  //printf("File %s will be striped.",pevent->name);
+             stripe(pevent->name);
+          } else {
+             sort(pevent->name);
+          }
+      }
+      i += sizeof(struct inotify_event) + pevent->len;
+   }
+}
+   
+void watch_copy()
+{
+   int result;
+   int fd;
+   int wd;   /* watch descriptor */
+   int rc;
+  
+   rc = sqlite3_open(DBNAME,&db);
+   if (rc != SQLITE_OK){
+     printf("Error: Cannot connect to database!\n");
+     exit(1);
    }
 
-   return 0;
+   fd = inotify_init();
+   if (fd < 0) {
+      printf("\nError: File Descriptor\n");
+      exit(1);
+   }
+   
+   wd = inotify_add_watch (fd, WATCH_DIR, IN_MOVED_TO | IN_CLOSE_WRITE | IN_CLOSE_NOWRITE);
+   if (wd < 0) {
+      printf("\nError: Watch Descriptor\n");
+      exit(1);
+   }
+ 
+   
+   while (1) {
+      	get_event(fd);
+   }
 }

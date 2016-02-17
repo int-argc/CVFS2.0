@@ -16,6 +16,7 @@
 #include "global_defs.h"
 #include "cmd_exec.h"
 #include "volman.h"
+#include "init_conf.h"
 #include <stdlib.h>
 
 #include <sqlite3.h>
@@ -42,7 +43,7 @@ double toBytes(string sUnit) {
     return val;
 }
 
-int main() {
+void initialize() {
 
     system("clear");
 
@@ -146,6 +147,4 @@ int main() {
     }
 
     printf("\n\nInitialization finished\n");
-
-    return 0;
 }
