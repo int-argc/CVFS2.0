@@ -41,7 +41,7 @@ void stripe(string filename)
       FILE *fptr1 = fopen(filepart,"wb");
       fwrite(buffer,1,result,fptr1);
       printf("%s written!\n",filepart);
-      sort(filepart);
+      sort(partname);
       fclose(fptr1);
       counter++;
       totalRead += result;
@@ -52,7 +52,7 @@ void stripe(string filename)
           FILE *fptr2 = fopen(filepart,"wb");
           fwrite(buffer,1,filesize-totalRead,fptr2);
           printf("%s written!\n", filepart);
-          sort(filepart);
+          sort(partname);
           fclose(fptr2);
           free(buffer);
       }

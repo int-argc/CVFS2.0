@@ -50,7 +50,6 @@ void initialize() {
     string disklist, assocvol, mountpt, avspace, command1, sql1;
 
     //sqlite3 information
-    sqlite3 *db;
     int rc = 0;
 
     //open sqlite3 db
