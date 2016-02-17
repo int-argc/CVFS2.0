@@ -13,7 +13,8 @@
 
 #define DBNAME "cvfs_db"
 #define WATCH_DIR "/mnt/CVFSTemp/"
-#define BUFF_SIZE ((sizeof(struct inotify_event)+16)*1024)
+#define BUFF_SIZE  ( sizeof (struct inotify_event) )
+#define EVENT_BUF_LEN     ( 1024 * ( BUFF_SIZE + 16 ) )
 
 void updateVolContent(string filename, const char* fileloc){
    int rc;
