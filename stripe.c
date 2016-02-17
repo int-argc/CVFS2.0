@@ -4,7 +4,7 @@
 #include "stripe.h"
 #include "sort.h"
 
-#define TEMPLOC   "mnt/CVFSTemp"
+#define TEMPLOC   "/mnt/CVFSTemp"
 
 void stripe(string filename)
 {
@@ -67,5 +67,5 @@ void stripe(string filename)
    string rmfile;
    sprintf(rmfile, "rm %s/%s", TEMPLOC, filename);
    printf("comm = %s", rmfile);
-   // system(rmfile);
+   system(rmfile);
 }
