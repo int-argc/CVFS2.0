@@ -4,6 +4,8 @@
 #include "stripe.h"
 #include "sort.h"
 
+#define TEMPLOC   "mnt/CVFSTemp"
+
 void stripe(string filename)
 {
    FILE *fptr;
@@ -46,6 +48,8 @@ void stripe(string filename)
       counter++;
       totalRead += result;
       
+      // di ba pwede na yung above code? kasi yung ni wwrite lang nya is yung 
+      // bytes read (result), and yung while condition is > 0
       if (filesize - totalRead < 536870912){ //less than 512MB to read
           sprintf(filepart, "/mnt/CVFSTemp/%s.part%d",filename, counter);
           sprintf(partname,"%s.part%d",filename,counter);
@@ -57,6 +61,11 @@ void stripe(string filename)
           free(buffer);
       }
    }
-    
+   
    fclose(fptr);
+   // remove file from temp
+   string rmfile;
+   sprintf(rmfile, "rm %s/%s", TEMPLOC, filename);
+   printf("comm = %s", rmfile);
+   // system(rmfile);
 }
