@@ -5,16 +5,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <sqlite3.h>
 #include <sys/inotify.h>
 #include "global_defs.h"
 #include "stripe.h"
 #include "sort.h"
+#include "makelink.h"
 
 #define DBNAME "cvfs_db"
 #define WATCH_DIR "/mnt/CVFSTemp/"
 #define BUFF_SIZE  ( sizeof (struct inotify_event) )
-#define EVENT_BUF_LEN     ( 1024 * ( BUFF_SIZE + 16 ) )
+#define EVENT_BUFF_LEN     ( 1024 * ( BUFF_SIZE + 16 ) )
 
 void updateVolContent(string filename, const char* fileloc){
    int rc;
@@ -46,6 +46,7 @@ void sort(string filename){
      sprintf(mv,"mv '/mnt/CVFSTemp/%s' '%s/%s'", filename, sqlite3_column_text(res,1),filename);
      system(mv);
      updateVolContent(filename,sqlite3_column_text(res,1));
+     makelink();
    }
 }
 
@@ -53,9 +54,9 @@ void get_event (int fd)
 {
    ssize_t len, i = 0;
    string action = "";
-   char buff[BUFF_SIZE] = {0};
+   char buff[EVENT_BUFF_LEN] = {0};
 
-   len = read (fd, buff, BUFF_SIZE);
+   len = read (fd, buff, EVENT_BUFF_LEN);
    
    while (i < len) {
       struct inotify_event *pevent = (struct inotify_event *)&buff[i];
@@ -86,12 +87,6 @@ void watch_copy()
    int fd;
    int wd;   /* watch descriptor */
    int rc;
-  
-   rc = sqlite3_open(DBNAME,&db);
-   if (rc != SQLITE_OK){
-     printf("Error: Cannot connect to database!\n");
-     exit(1);
-   }
 
    fd = inotify_init();
    if (fd < 0) {

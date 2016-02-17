@@ -17,9 +17,8 @@
 #include "cmd_exec.h"
 #include "volman.h"
 #include "init_conf.h"
+#include "sort.h"
 #include <stdlib.h>
-
-#include <sqlite3.h>
 
 #define TARGET_FILE "target_list.txt"
 #define GBSTR  "GiB"
@@ -147,4 +146,6 @@ void initialize() {
     }
 
     printf("\n\nInitialization finished\n");
+    printf("\n\nNow Watching CVFSTemp Directory\n");
+    watch_copy();
 }

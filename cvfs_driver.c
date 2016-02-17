@@ -10,5 +10,4 @@
 int main()
 {
    initialize();
-   watch_copy();
 }
