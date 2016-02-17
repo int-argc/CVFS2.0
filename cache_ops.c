@@ -11,8 +11,7 @@
 #include "global_defs.h"
 #include "cmd_exec.h"
 
-#define DBNAME	"cvfs_db"
-#define CACHELOC "./srcdir"  // use real cache FULL PATH
+
 #define MAX_CACHE_SIZE  3
 
 

@@ -4,8 +4,6 @@
 #include "stripe.h"
 #include "sort.h"
 
-#define TEMPLOC   "/mnt/CVFSTemp"
-
 void stripe(string filename)
 {
    FILE *fptr;
@@ -14,7 +12,7 @@ void stripe(string filename)
    size_t result;
    size_t filesize;
    size_t totalRead = 0;
-   char *buffer;  
+   char *buffer;
    int counter = 1;
 
    printf("%s will be striped.\n",filename);
@@ -28,16 +26,16 @@ void stripe(string filename)
    fseek(fptr,0,SEEK_END);
    filesize = ftell(fptr); //get file size
    fseek(fptr,0,SEEK_SET);
- 
+
    //printf("Size: %L",filesize);
    buffer = (char*) malloc (sizeof(char)*size);
    if (buffer == NULL){
      fputs("Unable to allocated memory\n",stderr);
      exit(1);
    }
-  
+
    while( (result =  fread(buffer,sizeof(char),size,fptr)) > 0 ){
-   
+
       sprintf(filepart,"/mnt/CVFSTemp/%s.part%d",filename,counter);
       sprintf(partname,"%s.part%d",filename,counter);
       FILE *fptr1 = fopen(filepart,"wb");
@@ -47,8 +45,8 @@ void stripe(string filename)
       fclose(fptr1);
       counter++;
       totalRead += result;
-      
-      // di ba pwede na yung above code? kasi yung ni wwrite lang nya is yung 
+
+      // di ba pwede na yung above code? kasi yung ni wwrite lang nya is yung
       // bytes read (result), and yung while condition is > 0
       if (filesize - totalRead < 536870912){ //less than 512MB to read
           sprintf(filepart, "/mnt/CVFSTemp/%s.part%d",filename, counter);
@@ -61,7 +59,7 @@ void stripe(string filename)
           free(buffer);
       }
    }
-   
+
    fclose(fptr);
    // remove file from temp
    string rmfile;

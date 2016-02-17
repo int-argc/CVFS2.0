@@ -11,15 +11,15 @@
 #include "sort.h"
 #include "makelink.h"
 
-#define DBNAME "cvfs_db"
-#define WATCH_DIR "/mnt/CVFSTemp/"
+// KASALANAN KO PAG DI GUMANA ITO... DAGDAG LANG NG SLASH SA TEMPLOC
+
 #define BUFF_SIZE  ( sizeof (struct inotify_event) )
 #define EVENT_BUFF_LEN     ( 1024 * ( BUFF_SIZE + 16 ) )
 
 void updateVolContent(string filename, const char* fileloc){
    int rc;
    string sql = "";
-   
+
    sprintf(sql, "insert into VolContent values ('%s','%s');",filename,fileloc);
    rc = sqlite3_exec(db,sql,0,0,0);
    if (rc != SQLITE_OK){
@@ -34,7 +34,7 @@ void sort(string filename){
    sqlite3_stmt *res;
    string sql = "", mv = "";
    strcpy(sql,"select max(avspace), mountpt from Target;");
-   
+
    rc = sqlite3_prepare_v2(db,sql,-1,&res,0);
    if (rc != SQLITE_OK){
      printf("Error: PREPARE V2.\n");
@@ -57,16 +57,16 @@ void get_event (int fd)
    char buff[EVENT_BUFF_LEN] = {0};
 
    len = read (fd, buff, EVENT_BUFF_LEN);
-   
+
    while (i < len) {
       struct inotify_event *pevent = (struct inotify_event *)&buff[i];
-      if (pevent->mask & IN_MOVED_TO){ 
+      if (pevent->mask & IN_MOVED_TO){
           sprintf(action,"File %s is transferring.",pevent->name);
 	  printf("%s\n",action);
       }
       if (pevent->mask & IN_CLOSE_WRITE){
           string ls_size = "", ls_size_out = "";
-          sprintf(ls_size,"ls -l /mnt/CVFSTemp | grep '%s' | awk '{print $5}'", pevent->name); 
+          sprintf(ls_size,"ls -l /mnt/CVFSTemp | grep '%s' | awk '{print $5}'", pevent->name);
           runCommand(ls_size,ls_size_out);
           //system(ls_size);
           //printf("File Size : %s",ls_size_out);
@@ -80,7 +80,7 @@ void get_event (int fd)
       i += sizeof(struct inotify_event) + pevent->len;
    }
 }
-   
+
 void watch_copy()
 {
    int result;
@@ -93,14 +93,14 @@ void watch_copy()
       printf("\nError: File Descriptor\n");
       exit(1);
    }
-   
-   wd = inotify_add_watch (fd, WATCH_DIR, IN_MOVED_TO | IN_CLOSE_WRITE | IN_CLOSE_NOWRITE);
+
+   wd = inotify_add_watch (fd, TEMPLOC, IN_MOVED_TO | IN_CLOSE_WRITE | IN_CLOSE_NOWRITE);
    if (wd < 0) {
       printf("\nError: Watch Descriptor\n");
       exit(1);
    }
- 
-   
+
+
    while (1) {
       	get_event(fd);
    }

@@ -11,9 +11,6 @@
 #include "cmd_exec.h"
 #include "makelink.h"
 
-// transfer definitions to global header
-#define DBNAME	"cvfs_db"
-#define SHARELOC	"/mnt/Share"	// use full path please!!!!
 
 // make the soft links here, as of now no threading
 static int callback(void *notUsed, int argc, char **argv, char **colname) {
@@ -34,11 +31,11 @@ static int callback(void *notUsed, int argc, char **argv, char **colname) {
 }
 
 void makelink() {
-    	
+
 	int tcount = 0;
 	char *errmsg = 0;
 	int rc;
-	
+
 	string file_list = "", comm = "", query = "", comm_out = "";
 
 	// get current contents of share folder
@@ -69,22 +66,22 @@ void makelink() {
 
 		rc = sqlite3_step(res);
 		if (rc == SQLITE_ROW){
-		     tcount = atoi(sqlite3_column_text(res,0));	
+		     tcount = atoi(sqlite3_column_text(res,0));
 		}
 
 		strcpy(query,"");*/
-	
+
     		sprintf(query, "SELECT filename, location FROM VolContent WHERE filename NOT IN ('%s');", comm_out);
-			
+
 		rc = sqlite3_exec(db, query, callback, 0, &errmsg);
 		if (rc != SQLITE_OK) {
 			fprintf(stderr, "SQL Error: %s\n", errmsg);
 			sqlite3_free(errmsg);
 		}
-		
-	
+
+
 	// close db
 	sqlite3_close(db);
 
-    
+
 }
