@@ -11,18 +11,18 @@
 #include "cmd_exec.h"
 #include "makelink.h"
 
-
 // make the soft links here, as of now no threading
 static int callback(void *notUsed, int argc, char **argv, char **colname) {
 	int i;
 	string comm = "";
-	// cge bukas mo na gawin jeff
+
 	if(argc != 2) {
 		fprintf(stderr, "Error in database table: missing columns\n");
 		exit(1);
 	} else {
 		sprintf(comm, "ln -s \"%s/%s\" \"%s/%s\"", argv[1], argv[0], SHARELOC, argv[0]);
 		printf("\nLink Created: '/mnt/Share/%s'",argv[0]);
+		printf("comm = %s\n", comm);
 		system(comm);
 	}
 
@@ -39,11 +39,13 @@ void makelink() {
 	string file_list = "", comm = "", query = "", comm_out = "";
 
 	// get current contents of share folder
-	sprintf(comm, "ls %s", SHARELOC);
+	sprintf(comm, "ls %s | sed -e ':a;N;$!ba;s/\\n/\", \"/g'", SHARELOC);
 	// printf("comm = %s\n", comm);
 	runCommand(comm, comm_out);
-
-	printf("File List: %s\n", comm_out);
+	sprintf(file_list, "\"%s", comm_out);
+	int end = strlen(file_list) - 1;
+	file_list[end] = '\"';
+	printf("File List: %s\n", file_list);
     // open database
 /*	printf("Opening database %s\n", DBNAME);
 	rc = sqlite3_open(DBNAME, &db);
@@ -71,13 +73,13 @@ void makelink() {
 
 		strcpy(query,"");*/
 
-    		sprintf(query, "SELECT filename, location FROM VolContent WHERE filename NOT IN ('%s');", comm_out);
+	sprintf(query, "SELECT filename, location FROM VolContent WHERE filename NOT IN (%s);", file_list);
 
-		rc = sqlite3_exec(db, query, callback, 0, &errmsg);
-		if (rc != SQLITE_OK) {
-			fprintf(stderr, "SQL Error: %s\n", errmsg);
-			sqlite3_free(errmsg);
-		}
+	rc = sqlite3_exec(db, query, callback, 0, &errmsg);
+	if (rc != SQLITE_OK) {
+		fprintf(stderr, "SQL Error: %s\n", errmsg);
+		sqlite3_free(errmsg);
+	}
 
 
 	// close db
