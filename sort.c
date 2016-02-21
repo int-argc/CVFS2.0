@@ -16,9 +16,13 @@
 #define BUFF_SIZE  ( sizeof (struct inotify_event) )
 #define EVENT_BUFF_LEN     ( 1024 * ( BUFF_SIZE + 16 ) )
 
+/*
+    pang new files lang ito di ba?
+*/
 void updateVolContent(string filename, const char* fileloc){
    int rc;
    string sql = "";
+   string cache_q = "";
 
    sprintf(sql, "insert into VolContent values ('%s','%s');",filename,fileloc);
    rc = sqlite3_exec(db,sql,0,0,0);
@@ -27,6 +31,18 @@ void updateVolContent(string filename, const char* fileloc){
      sqlite3_close(db);
      exit(1);
    }
+
+   // sa striped files lang talaga dapat ito eh, pero mahirap pa palitan ngayon
+   // yung mga function so for testing lang kung gumagana yung cache
+   sprintf(cache_q, "INSERT INTO CacheContent VALUES ('%s', '%s', %d);", filename, fileloc, 1);
+   rc = sqlite3_exec(db,sql,0,0,0);
+   if (rc != SQLITE_OK){
+     printf("Failed to update CacheContent database!\n");
+     sqlite3_close(db);
+     exit(1);
+   }
+   // todo: call refreshCache
+
 }
 
 void sort(string filename){

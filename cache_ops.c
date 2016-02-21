@@ -102,7 +102,7 @@ void refreshCache() {
     strcpy(file_list, comm_out);
 
 
-    // store list of fils in a struct
+    // store list of files in a struct
     char *pch = NULL;
     int i;
     pch = strtok(file_list, ",");       // replace separator if conflict with file name
@@ -163,7 +163,7 @@ void incrementFrequency(String filename) {
     update database +1 on frequency of filename
 }
 
-on write, (new file -> bahala na yung write mag insert taena)
+on write, (new file -> bahala na yung write mag insert)
 // note: dapat check size di pde sobrang laki sa cache
 
 // baka dapat naka thread ito or everytime mag increment frequency i call ito
