@@ -1,0 +1,1 @@
+void* watch_share();
