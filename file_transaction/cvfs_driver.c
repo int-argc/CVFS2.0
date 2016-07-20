@@ -14,12 +14,39 @@
 
 #define THREADCNT 2
 
+// declare globals
+long MAX_CACHE_SIZE;
+long STRIPE_SIZE;
+
+
 // shows help message and exit
 void show_help() {
     printf("Usage:\n");
     printf("\tcvfs_driver [init]\n");
     printf("use init to initialize system");
     exit(1);
+}
+
+void configure() {
+    int flag = 0; //initial value of flag
+    FILE *fp = fopen("random.txt", "w");
+    fprintf(fp, "%d", flag);
+    fclose(fp);
+    // read configuration files of cache size and stripe size
+    fp = fopen(CACHE_CONF, "r");
+    if (fp == NULL) {
+        printf("Cannot open file %s\n", CACHE_CONF);
+        exit(1);
+    }
+    fscanf(fp, "%ld", &MAX_CACHE_SIZE);
+    fclose(fp);
+    fp = fopen(STRIPE_CONF, "r");
+    if (fp == NULL) {
+        printf("Cannot open file %s\n", STRIPE_CONF);
+        exit(1);
+    }
+    fscanf(fp, "%ld", &STRIPE_SIZE);
+    fclose(fp);
 }
 
 int main(int argc, char *argv[]) {
@@ -43,10 +70,7 @@ int main(int argc, char *argv[]) {
     pthread_t t[THREADCNT];
     int i;
 
-    int flag = 0; //initial value of flag 
-    FILE *fp = fopen("random.txt", "w");
-    fprintf(fp, "%d", flag);
-    fclose(fp);
+    configure();
 
     while(1) {
         //pthread_create(&t[0], NULL, create_link, NULL);
