@@ -25,5 +25,5 @@ typedef char String[1024];
 #define STRIPE_CONF  "../configs/stripe_size.conf"
 
 // global variables
-extern long MAX_CACHE_SIZE;
+extern int MAX_CACHE_SIZE;
 extern long STRIPE_SIZE;

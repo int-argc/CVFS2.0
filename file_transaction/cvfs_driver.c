@@ -15,7 +15,7 @@
 #define THREADCNT 2
 
 // declare globals
-long MAX_CACHE_SIZE;
+int MAX_CACHE_SIZE;
 long STRIPE_SIZE;
 
 
@@ -38,7 +38,7 @@ void configure() {
         printf("Cannot open file %s\n", CACHE_CONF);
         exit(1);
     }
-    fscanf(fp, "%ld", &MAX_CACHE_SIZE);
+    fscanf(fp, "%d", &MAX_CACHE_SIZE);
     fclose(fp);
     fp = fopen(STRIPE_CONF, "r");
     if (fp == NULL) {
