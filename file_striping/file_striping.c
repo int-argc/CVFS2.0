@@ -15,7 +15,10 @@
 #include "../volume_management/file_mapping.h"
 #include "file_striping.h"
 
-void stripe(String dirpath, String fullpath, String filename){
+#define MAX_PARTS   400     // maximum number of stripe parts
+// this can handle 20GB striped into 64MB of stripe size
+
+void stripe(String dirpath, String fullpath, String filename) {
 
   FILE *file_to_open;
 
@@ -59,10 +62,11 @@ void stripe(String dirpath, String fullpath, String filename){
 
   int flag = 1;
   FILE *fp = fopen("../file_transaction/random.txt", "w");
-  //fwrite("1", 1, sizeof("1"), fp); //not yet done striping  
+  //fwrite("1", 1, sizeof("1"), fp); //not yet done striping
   fprintf(fp, "%d", flag);
-  fclose(fp); 
-
+  fclose(fp);
+  String partnames[MAX_PARTS];
+  String partfiles[MAX_PARTS];
   while ((bytes_read = fread(buffer, sizeof(char), STRIPE_SIZE, file_to_open)) > 0){
        sprintf(part_name, "%spart%d.%s", path, part_count, filename);
        //printf("PARTNAME : %s\n", part_name);
@@ -75,11 +79,15 @@ void stripe(String dirpath, String fullpath, String filename){
        sprintf(part_file, "%s", part_name);
        memmove(part_file,part_file+strlen("/mnt/CVFSTemp/"),1+strlen(part_file+strlen("/mnt/CVFSTemp/")));
        //printf("Filename after memmove: %s\n", part_name);
-       file_map(part_name, part_file);
+    //    file_map(part_name, part_file);
+        strcpy(partnames[part_count - 1], part_name);
+        strcpy(partfiles[part_count - 1], part_file);
        part_count++;
 
 	printf("READ BYTES := %d\n", bytes_read);
   }
+  file_map_stripe(partnames, partfiles, part_count - 1);    // not so sure if -1
+
   free(buffer);
   system(comm);
   fclose(file_to_open);
